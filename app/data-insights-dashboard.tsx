@@ -64,7 +64,7 @@ const DataInsightsDashboard = () => {
           </div>
           <div className="flex items-center justify-between text-[11px]">
             <span>10 of 15 report slots used</span>
-            <Button variant="ghost" size="xs" className="h-6 px-2 text-[11px] text-cyan-300">
+            <Button variant="ghost" size="sm" className="h-6 px-2 text-[11px] text-cyan-300">
               Upgrade
             </Button>
           </div>
@@ -289,7 +289,7 @@ const DataInsightsDashboard = () => {
                         </CardTitle>
                         <p className="text-xs text-slate-400 mt-1">Top segments ranked by revenue and margin.</p>
                       </div>
-                      <Button variant="outline" size="xs" className="h-7 text-[11px] border-slate-700 bg-slate-900/80">
+                      <Button variant="outline" size="sm" className="h-7 text-[11px] border-slate-700 bg-slate-900/80">
                         Download CSV
                       </Button>
                     </CardHeader>
