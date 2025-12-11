@@ -75,9 +75,10 @@ const ValoraLandingPage: React.FC = () => {
 
               <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
                 <div className="flex-1 flex items-center gap-2 bg-slate-900/80 border border-slate-700 rounded-xl px-3 py-2.5">
-                  <input
-                    placeholder="Enter your work email"
+                  <input type="email"
+                    placeholder="Enter your work email" defaultValue=""
                     className="h-9 w-full text-xs sm:text-sm bg-transparent border-none focus:outline-none focus:ring-0 placeholder:text-slate-500"
+                    suppressHydrationWarning
                   />
                   <Link href="/dashboard" className="h-9 px-3 inline-flex items-center justify-center text-xs sm:text-sm rounded-lg bg-gradient-to-r from-cyan-400 to-emerald-400 text-slate-950 font-semibold hover:from-cyan-300 hover:to-emerald-300 whitespace-nowrap">
                       Get early access →
