@@ -1,0 +1,28 @@
+<svg
+  width="64"
+  height="64"
+  viewBox="0 0 64 64"
+  fill="none"
+  xmlns="http://www.w3.org/2000/svg"
+>
+  <defs>
+    <linearGradient id="valoraBg" x1="12" y1="8" x2="52" y2="56" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0B1D33" />
+      <stop offset="1" stop-color="#020617" />
+    </linearGradient>
+    <linearGradient id="valoraV" x1="18" y1="18" x2="46" y2="44" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#24E4FF" />
+      <stop offset="1" stop-color="#2DD4BF" />
+    </linearGradient>
+  </defs>
+
+  <rect x="4" y="4" width="56" height="56" rx="18" fill="url(#valoraBg)" />
+  <path
+    d="M18 20L30 44L46 22"
+    stroke="url(#valoraV)"
+    stroke-width="4"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <circle cx="46" cy="20" r="3" fill="#24E4FF" />
+</svg>

@@ -6,13 +6,77 @@ import React from "react";
 
 
 const ValoraLandingPage: React.FC = () => {
+
+const [email, setEmail] = React.useState("");
+const [submitted, setSubmitted] = React.useState(false);
+const [error, setError] = React.useState<string | null>(null);
+const [isDemoOpen, setIsDemoOpen] = React.useState(false);
+
+const [demoEmail, setDemoEmail] = React.useState("");
+const [demoCompany, setDemoCompany] = React.useState("");
+const [demoDomain, setDemoDomain] = React.useState("E-commerce");
+const [demoSubmitted, setDemoSubmitted] = React.useState(false);
+const [demoError, setDemoError] = React.useState<string | null>(null);
+
+
+function handleDemoSubmit() {
+  setDemoError(null);
+
+  const emailTrimmed = demoEmail.trim().toLowerCase();
+  const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailTrimmed);
+  if (!isValidEmail) return setDemoError("Please enter a valid email.");
+  if (!demoCompany.trim()) return setDemoError("Please enter your company name.");
+
+  const payload = {
+    email: emailTrimmed,
+    company: demoCompany.trim(),
+    domain: demoDomain,
+    createdAt: new Date().toISOString(),
+  };
+
+  try {
+    const key = "valoraDemoRequestsV1";
+    const existing = JSON.parse(localStorage.getItem(key) || "[]");
+    existing.push(payload);
+    localStorage.setItem(key, JSON.stringify(existing));
+  } catch {}
+
+  setDemoSubmitted(true);
+}
+
+
+  function handleEarlyAccessSubmit() {
+  setError(null);
+
+  const trimmed = email.trim().toLowerCase();
+  const isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed);
+
+  if (!isValid) {
+    setError("Please enter a valid email address.");
+    return;
+  }
+
+  // store locally for now (later we wire to backend)
+  try {
+    const key = "valoraEarlyAccessEmailsV1";
+    const existing = JSON.parse(localStorage.getItem(key) || "[]");
+    const next = Array.from(new Set([...existing, trimmed]));
+    localStorage.setItem(key, JSON.stringify(next));
+  } catch {}
+
+  setSubmitted(true);
+}
+  
+  
   return (
     <div className="min-h-screen bg-slate-950 text-slate-50 flex flex-col">
       {/* Top nav */}
       <header className="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-xl sticky top-0 z-40">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-            <ValoraLogo />
+            <div className="h-7 w-7 rounded-xl bg-gradient-to-br from-cyan-400 to-emerald-400 flex items-center justify-center font-semibold text-slate-950 text-sm">
+                  V
+                </div>
             <div className="leading-tight">
             <div className="font-semibold tracking-tight text-sm sm:text-base">
             Valora AI
@@ -39,12 +103,18 @@ const ValoraLandingPage: React.FC = () => {
           </nav>
 
           <div className="flex items-center gap-2">
-            <Link href="/dashboard" className="hidden sm:inline-flex text-xs sm:text-sm text-slate-200 px-3 py-1.5 rounded-lg hover:bg-slate-900/80 border border-transparent hover:border-slate-700">
+            <Link href="/signin" className="hidden sm:inline-flex text-xs sm:text-sm text-slate-200 px-3 py-1.5 rounded-lg hover:bg-slate-900/80 border border-transparent hover:border-slate-700">
             Sign in
             </Link>
-            <Link href="/dashboard" className="px-3 sm:px-4 py-1.5 rounded-lg bg-gradient-to-r from-cyan-400 to-emerald-400 text-slate-950 text-xs sm:text-sm font-semibold shadow-lg shadow-cyan-500/30 hover:from-cyan-300 hover:to-emerald-300">
-            Start free
+            <Link href="/register" className="px-3 sm:px-4 py-1.5 rounded-lg bg-gradient-to-r from-cyan-400 to-emerald-400 text-slate-950 text-xs sm:text-sm font-semibold shadow-lg shadow-cyan-500/30 hover:from-cyan-300 hover:to-emerald-300">
+              Start free
             </Link>
+            <button
+            onClick={() => setIsDemoOpen(true)}
+            className="px-3 sm:px-4 py-1.5 rounded-lg bg-gradient-to-r from-cyan-400 to-emerald-400 text-slate-950 text-xs sm:text-sm font-semibold shadow-lg shadow-cyan-500/30 hover:from-cyan-300 hover:to-emerald-300"
+            >
+            Request demo
+            </button>
          </div>
         </div>
       </header>
@@ -74,18 +144,33 @@ const ValoraLandingPage: React.FC = () => {
               </div>
 
               <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+                
                 <div className="flex-1 flex items-center gap-2 bg-slate-900/80 border border-slate-700 rounded-xl px-3 py-2.5">
                   <input type="email"
-                    placeholder="Enter your work email" defaultValue=""
+                    placeholder="Enter your work email" value={email} onChange={(e) => setEmail(e.target.value)}
                     className="h-9 w-full text-xs sm:text-sm bg-transparent border-none focus:outline-none focus:ring-0 placeholder:text-slate-500"
                     suppressHydrationWarning
                   />
-                  <Link href="/dashboard" className="h-9 px-3 inline-flex items-center justify-center text-xs sm:text-sm rounded-lg bg-gradient-to-r from-cyan-400 to-emerald-400 text-slate-950 font-semibold hover:from-cyan-300 hover:to-emerald-300 whitespace-nowrap">
-                      Get early access →
-                  </Link>
+                  <button
+                    type="button"
+                    onClick={handleEarlyAccessSubmit}
+                    className="h-9 px-3 inline-flex items-center justify-center text-xs sm:text-sm rounded-lg bg-gradient-to-r from-cyan-400 to-emerald-400 text-slate-950 font-semibold hover:from-cyan-300 hover:to-emerald-300 whitespace-nowrap"
+                    >
+                    Get early access →
+                    </button>
                 </div>
+                
               </div>
-
+                {submitted && (
+                <div className="text-[11px] text-emerald-300">
+                    Thanks — you’re on the early access list.
+                </div>
+                )}
+                {error && (
+                <div className="text-[11px] text-rose-300">
+                    {error}
+                </div>
+                )}
               <div className="flex flex-wrap items-center gap-4 text-[11px] text-slate-400">
                 <div className="flex items-center gap-2">
                   <div className="h-5 w-5 rounded-full bg-emerald-500/15 border border-emerald-400/50 flex items-center justify-center">
@@ -176,29 +261,149 @@ const ValoraLandingPage: React.FC = () => {
           </div>
         </section>
 
-        {/* Features */}
+        {/* Who Valora is for */}
         <section
-          id="features"
-          className="border-b border-slate-900/80 bg-slate-950"
+        id="who-for"
+        className="border-b border-slate-900/80 bg-slate-950"
         >
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 space-y-8">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-6">
+            
             <div className="space-y-3 max-w-2xl">
-              <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight">
+            <h2 className="text-xs font-semibold tracking-[0.25em] uppercase text-cyan-300">
                 Everything you need to understand your business.
-              </h2>
-              <p className="text-sm sm:text-base text-slate-300">
-                Valora AI connects the dots between your sales, marketing, and
-                finance tools to deliver automated dashboards, one-click
-                reports, and AI recommendations tailored to small businesses and
-                ecommerce brands.
-              </p>
+            </h2>
+
+            {/* Gradient single-line domains (A + B) */}
+            <p className="text-[12px] font-semibold tracking-wide bg-gradient-to-r from-cyan-300 via-emerald-300 to-cyan-300 bg-clip-text text-transparent">
+                E-commerce • SaaS • Insurance • Healthcare • Supply Chain • Finance & Banking
+            </p>
+
+            <p className="text-xs sm:text-sm text-slate-400">
+            Valora AI learns each industry’s structure and metrics, using domain-aware
+            models to auto-generate dashboards, KPIs, forecasts, and insight narratives —
+            without custom pipelines or a full data team.
+            </p>
+
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <FeatureCard
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 text-xs">
+
+            {/* E-commerce (active) */}
+            <div className="rounded-xl border border-slate-800 bg-slate-950/90 p-3 flex flex-col gap-2 hover:border-cyan-400/60 hover:shadow-[0_0_0_1px_rgba(34,211,238,0.35)] transition">
+                <div className="text-[11px] font-semibold text-cyan-300">
+                E-COMMERCE & DTC 🛒
+                </div>
+                <div className="text-[13px] font-semibold text-slate-100">
+                Products, customers, repeat orders
+                </div>
+                <p className="text-[11px] text-slate-400 leading-snug">
+                Upload your orders export and get instant visibility into revenue,
+                cohorts, and product performance — without spreadsheets.
+                </p>
+                <div className="mt-1 text-[11px] text-slate-500">
+                Metrics: AOV, repeat rate, top SKUs, at-risk revenue.
+                </div>
+            </div>
+
+            {/* Insurance */}
+            <div className="rounded-xl border border-slate-800 bg-slate-950/90 p-3 flex flex-col gap-2 hover:border-cyan-400/60 hover:shadow-[0_0_0_1px_rgba(34,211,238,0.35)] transition">
+                <div className="text-[11px] font-semibold text-emerald-300">
+                INSURANCE 🛡️(COMING SOON)
+                </div>
+                <div className="text-[13px] font-semibold text-slate-100">
+                Policies, claims, loss ratios
+                </div>
+                <p className="text-[11px] text-slate-400 leading-snug">
+                Analytics pack for underwriting, claims, and actuarial insights —
+                powered by Valora’s core modeling engine.
+                </p>
+                <div className="mt-1 text-[11px] text-slate-500">
+                Metrics: written premium, earned premium, claim severity, loss ratio.
+                </div>
+            </div>
+
+            {/* Supply chain */}
+            <div className="rounded-xl border border-slate-800 bg-slate-950/90 p-3 flex flex-col gap-2 hover:border-cyan-400/60 hover:shadow-[0_0_0_1px_rgba(34,211,238,0.35)] transition">
+                <div className="text-[11px] font-semibold text-sky-300">
+                SUPPLY CHAIN 📦(COMING SOON)
+                </div>
+                <div className="text-[13px] font-semibold text-slate-100">
+                Shipments, inventory, on-time %
+                </div>
+                <p className="text-[11px] text-slate-400 leading-snug">
+                Transform shipment logs and SKU data into a live operations
+                dashboard — without needing a BI team.
+                </p>
+                <div className="mt-1 text-[11px] text-slate-500">
+                Metrics: OTIF, stockouts, warehouse turns.
+                </div>
+            </div>
+
+            {/* Healthcare */}
+            <div className="rounded-xl border border-slate-800 bg-slate-950/90 p-3 flex flex-col gap-2 hover:border-cyan-400/60 hover:shadow-[0_0_0_1px_rgba(34,211,238,0.35)] transition">
+                <div className="text-[11px] font-semibold text-rose-300">
+                HEALTHCARE 🏥(COMING SOON)
+                </div>
+                <div className="text-[13px] font-semibold text-slate-100">
+                Claims, utilization, outcomes
+                </div>
+                <p className="text-[11px] text-slate-400 leading-snug">
+                A healthcare analytics pack for providers and payers — powered by
+                automated cleaning, mapping, and cost modeling.
+                </p>
+                <div className="mt-1 text-[11px] text-slate-500">
+                Metrics: claim cost, utilization rate, patient churn.
+                </div>
+            </div>
+
+            {/* Finance */}
+            <div className="rounded-xl border border-slate-800 bg-slate-950/90 p-3 flex flex-col gap-2 hover:border-cyan-400/60 hover:shadow-[0_0_0_1px_rgba(34,211,238,0.35)] transition">
+                <div className="text-[11px] font-semibold text-purple-300">
+                FINANCE & BANKING 💳(COMING SOON)
+                </div>
+                <div className="text-[13px] font-semibold text-slate-100">
+                Cashflow, risk, portfolio insights
+                </div>
+                <p className="text-[11px] text-slate-400 leading-snug">
+                A domain pack for financial analytics focused on cashflow modeling,
+                portfolio performance, and policy risk insights.
+                </p>
+                <div className="mt-1 text-[11px] text-slate-500">
+                Metrics: NPV, IRR, liquidity, customer segments, risk scoring.
+                </div>
+            </div>
+
+            {/* SaaS & Subscriptions */}
+            <div className="rounded-xl border border-slate-800 bg-slate-950/90 p-3 flex flex-col gap-2 hover:border-cyan-400/60 hover:shadow-[0_0_0_1px_rgba(34,211,238,0.35)] transition">
+            <div className="text-[11px] font-semibold text-indigo-300">
+                SAAS & SUBSCRIPTIONS ☁️(COMING SOON)
+            </div>
+            <div className="text-[13px] font-semibold text-slate-100">
+                MRR, churn, retention & expansions
+            </div>
+            <p className="text-[11px] text-slate-400 leading-snug">
+                A domain pack for subscription-based businesses with automated MRR tracking,
+                retention cohorts, churn detection, and revenue forecasting.
+            </p>
+            <div className="mt-1 text-[11px] text-slate-500">
+                Metrics: MRR, ARR, churn, LTV, ARPU, cohort heatmaps.
+            </div>
+            </div>
+
+            </div>
+        </div>
+        </section>
+
+        {/* Features */}
+        <section id="features" className="border-b border-slate-900/80 bg-slate-950">
+
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 space-y-8">
+            <div className="rounded-xl border border-slate-800 bg-slate-950/90 p-3 flex flex-col gap-2 hover:border-cyan-400/60 hover:shadow-[0_0_0_1px_rgba(34,211,238,0.35)] transition">
+              <FeatureCard 
                 title="Automated dashboards"
                 body="Stay on top of revenue, margin, repeat customers, and marketing ROI — without building a single report manually."
-              />
+              /></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FeatureCard
                 title="AI-generated insights"
                 body="Let Valora AI scan your data for anomalies, trends, and opportunities, and summarize them in plain language."
@@ -386,10 +591,84 @@ const ValoraLandingPage: React.FC = () => {
             </footer>
           </div>
         </section>
+
+            {isDemoOpen && (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+        <div className="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-950 p-5 shadow-2xl">
+        <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-slate-100">
+            Request a Valora AI demo
+            </h3>
+            <button
+            onClick={() => setIsDemoOpen(false)}
+            className="text-slate-400 hover:text-slate-200"
+            >
+            ✕
+            </button>
+        </div>
+
+        <p className="text-xs text-slate-400 mb-4">
+            Tell us a bit about your business. We’ll reach out with a tailored demo.
+        </p>
+
+        <div className="space-y-3">
+            <input
+            placeholder="Work email"
+            value={demoEmail}
+            onChange={(e) => setDemoEmail(e.target.value)}
+            className="w-full h-9 rounded-lg bg-slate-900 border border-slate-700 px-3 text-xs text-slate-200 placeholder:text-slate-500"
+            />
+
+            <input
+            placeholder="Company name"
+            value={demoCompany}
+            onChange={(e) => setDemoCompany(e.target.value)}
+            className="w-full h-9 rounded-lg bg-slate-900 border border-slate-700 px-3 text-xs text-slate-200 placeholder:text-slate-500"
+            />
+
+            <select
+            value={demoDomain}
+            onChange={(e) => setDemoDomain(e.target.value)}
+            className="w-full h-9 rounded-lg bg-slate-900 border border-slate-700 px-2 text-xs text-slate-200">
+            <option>E-commerce</option>
+            <option>SaaS</option>
+            <option>Insurance</option>
+            <option>Healthcare</option>
+            <option>Supply Chain</option>
+            <option>Finance / Banking</option>
+            </select>
+        </div>
+
+        <button
+        onClick={handleDemoSubmit}
+        className="mt-4 w-full h-9 rounded-lg bg-gradient-to-r from-cyan-400 to-emerald-400 text-slate-950 text-xs font-semibold hover:from-cyan-300 hover:to-emerald-300">
+        Submit request
+        </button>
+        {demoSubmitted && (
+        <div className="mt-3 text-[11px] text-emerald-300">
+            Request received — we’ll email you shortly.
+        </div>
+        )}
+        {demoError && (
+        <div className="mt-3 text-[11px] text-rose-300">
+            {demoError}
+        </div>
+        )}
+        <div className="mt-3 text-[11px] text-slate-500 text-center">
+            We typically respond within 24 hours.
+        </div>
+        </div>
+    </div>
+    )}
+
+
       </main>
     </div>
   );
 };
+
+
+
 
 interface MetricTileProps {
   label: string;
@@ -523,6 +802,12 @@ const FaqItem: React.FC<FaqItemProps> = ({ question, answer }) => (
 
 
 function ValoraLogo() {
+  const uid = React.useId(); // prevents gradient ID collisions
+
+  const bgId = `valoraBg-${uid}`;
+  const vId = `valoraV-${uid}`;
+  const glowId = `valoraGlow-${uid}`;
+
   return (
     <svg
       width="36"
@@ -531,42 +816,68 @@ function ValoraLogo() {
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className="rounded-xl"
+      role="img"
+      aria-label="Valora AI"
     >
       <defs>
-        <linearGradient
-          id="valoraBg"
-          x1="12"
-          y1="8"
-          x2="52"
-          y2="56"
-          gradientUnits="userSpaceOnUse"
-        >
-          <stop offset="0" stopColor="#0B1D33" />
+        {/* Deep background */}
+        <linearGradient id={bgId} x1="10" y1="8" x2="54" y2="56" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stopColor="#0B1220" />
           <stop offset="1" stopColor="#020617" />
         </linearGradient>
-        <linearGradient
-          id="valoraV"
-          x1="18"
-          y1="18"
-          x2="46"
-          y2="44"
-          gradientUnits="userSpaceOnUse"
-        >
+
+        {/* V stroke gradient */}
+        <linearGradient id={vId} x1="16" y1="16" x2="48" y2="48" gradientUnits="userSpaceOnUse">
           <stop offset="0" stopColor="#24E4FF" />
+          <stop offset="0.55" stopColor="#22D3EE" />
           <stop offset="1" stopColor="#2DD4BF" />
         </linearGradient>
+
+        {/* Subtle outer glow */}
+        <filter id={glowId} x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="2.2" result="blur" />
+          <feColorMatrix
+            in="blur"
+            type="matrix"
+            values="
+              0 0 0 0 0.13
+              0 0 0 0 0.83
+              0 0 0 0 0.93
+              0 0 0 0.55 0"
+            result="glow"
+          />
+          <feMerge>
+            <feMergeNode in="glow" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
       </defs>
 
-      <rect x="4" y="4" width="56" height="56" rx="18" fill="url(#valoraBg)" />
+      {/* Rounded square */}
+      <rect x="4" y="4" width="56" height="56" rx="18" fill={`url(#${bgId})`} />
+
+      {/* Subtle glass highlight */}
       <path
-        d="M18 18L30 44L46 20"
-        stroke="url(#valoraV)"
-        strokeWidth="4"
+        d="M14 16c6-7 16-10 26-7 4 1 7 3 10 6"
+        stroke="rgba(255,255,255,0.14)"
+        strokeWidth="3"
         strokeLinecap="round"
-        strokeLinejoin="round"
       />
-      <circle cx="46" cy="20" r="3" fill="#24E4FF" />
+
+      {/* V mark with glow */}
+      <g filter={`url(#${glowId})`}>
+        <path
+          d="M18 20L30.5 46L46 22"
+          stroke={`url(#${vId})`}
+          strokeWidth="4.6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        {/* Accent node */}
+        <circle cx="46" cy="22" r="3.2" fill="#24E4FF" opacity="0.95" />
+      </g>
     </svg>
   );
 }
+
 export default ValoraLandingPage;
