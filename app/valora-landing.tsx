@@ -1,11 +1,145 @@
 "use client";
-
-import Link from "next/link";
 import React from "react";
+import Link from "next/link";
 
 
+import { motion, useInView } from "framer-motion";
+import type { Variants } from "framer-motion";
+import { money } from "@/app/lib/formatters";
+
+const EASE_OUT: [number, number, number, number] = [0.16, 1, 0.3, 1];
+
+function HowItWorksFlow() {
+  const ref = React.useRef<HTMLDivElement | null>(null);
+  const inView = useInView(ref, { once: true, margin: "-20% 0px" })
+
+
+const container: Variants = {
+  hidden: {},
+  show: {
+    transition: {
+      staggerChildren: 0.14,
+      delayChildren: 0.05,
+    },
+  },
+};
+
+
+
+// --- KPI bundle---//
+
+
+const card: Variants = {
+  hidden: { opacity: 0, y: 10, filter: "blur(4px)" },
+  show: {
+    opacity: 1,
+    y: 0,
+    filter: "blur(0px)",
+    transition: { duration: 0.45, ease: EASE_OUT },
+  },
+};
+
+const arrow: Variants = {
+  hidden: { opacity: 0, x: -6 },
+  show: {
+    opacity: 1,
+    x: 0,
+    transition: { duration: 0.35, ease: EASE_OUT },
+  },
+};
+
+  return (
+    <motion.div
+      ref={ref}
+      variants={container}
+      initial="hidden"
+      animate={inView ? "show" : "hidden"}
+      className="grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch"
+    >
+      <motion.div variants={card} className="relative">
+        <StepCard icon="→" title="Add your data" body="Upload reports or connect Shopify, Stripe, or CSV exports." />
+        {/* desktop arrow connector */}
+        <motion.div
+          variants={arrow}
+          className="hidden md:flex absolute -right-4 top-1/2 -translate-y-1/2 text-slate-500"
+          animate={inView ? { opacity: 1, x: 0 } : { opacity: 0, x: -6 }}
+        >
+          <motion.span
+            animate={inView ? { opacity: [0.4, 1, 0.4] } : {}}
+            transition={{ duration: 1.2, repeat: Infinity }}
+          >
+            →
+          </motion.span>
+        </motion.div>
+      </motion.div>
+
+      <motion.div variants={card} className="relative">
+        <StepCard icon="⇢" title="Valora models it" body="Automatic cleaning, mapping, and KPI computation across domains." />
+        <motion.div
+          variants={arrow}
+          className="hidden md:flex absolute -right-4 top-1/2 -translate-y-1/2 text-slate-500"
+        >
+          <motion.span
+            animate={inView ? { opacity: [0.4, 1, 0.4] } : {}}
+            transition={{ duration: 1.2, repeat: Infinity, delay: 0.2 }}
+          >
+            →
+          </motion.span>
+        </motion.div>
+      </motion.div>
+
+      <motion.div variants={card}>
+        <StepCard icon="✓" title="Act on insights" body="Diagnostics + cross-domain signals show what to fix or double down on." />
+      </motion.div>
+    </motion.div>
+  );
+}
+
+// // utils (local)
+// const money = (n: number) =>
+//   n.toLocaleString(undefined, {
+//     style: "currency",
+//     currency: "USD",
+//     minimumFractionDigits: 2,
+//   });
 
 const ValoraLandingPage: React.FC = () => {
+
+
+  // KPI state (Phase 3)
+  const [kpis, setKpis] = React.useState<KpiBundle | null>(null);
+  const [kpisLoading, setKpisLoading] = React.useState(true);
+  const [kpisError, setKpisError] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    const ac = new AbortController();
+
+    (async () => {
+      try {
+        setKpisLoading(true);
+        setKpisError(null);
+
+        console.log("➡️ fetching /api/kpis...");
+        const res = await fetch("/api/kpis", { cache: "no-store", signal: ac.signal });
+        console.log("⬅️ status:", res.status);
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        const data = (await res.json()) as KpiBundle;
+        console.log("✅ KPIs:", data);
+
+        setKpis(data);
+      } catch (e: any) {
+        if (e?.name !== "AbortError") setKpisError(e?.message ?? "Failed to load KPIs");
+      } finally {
+        setKpisLoading(false);
+      }
+    })();
+
+    return () => ac.abort();
+  }, []);
+
+
 
 const [email, setEmail] = React.useState("");
 const [submitted, setSubmitted] = React.useState(false);
@@ -65,7 +199,33 @@ function handleDemoSubmit() {
   } catch {}
 
   setSubmitted(true);
+  setEmail("");
+
+  }
+  
+const demoRevenue = [120, 132, 125, 148, 160, 182];
+const demoMargin  = [28, 31, 29, 34, 37, 39];
+
+function MiniDualLineChart({ a, b }: { a: number[]; b: number[] }) {
+  const w = 520, h = 120, pad = 10;
+  const max = Math.max(...a, ...b);
+  const min = Math.min(...a, ...b);
+
+  const x = (i: number) => pad + (i * (w - pad * 2)) / (a.length - 1);
+  const y = (v: number) => h - pad - ((v - min) * (h - pad * 2)) / (max - min || 1);
+
+  const path = (arr: number[]) =>
+    arr.map((v, i) => `${i === 0 ? "M" : "L"} ${x(i).toFixed(2)} ${y(v).toFixed(2)}`).join(" ");
+
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-32">
+      <path d={path(a)} fill="none" stroke="currentColor" strokeWidth="2" className="text-slate-200" />
+      <path d={path(b)} fill="none" stroke="currentColor" strokeWidth="2" className="text-cyan-300" />
+    </svg>
+  );
 }
+
+
   
   
   return (
@@ -82,7 +242,7 @@ function handleDemoSubmit() {
             Valora AI
             </div>
             <div className="text-[11px] text-slate-400 hidden sm:block">
-             Turn business data into value — instantly.
+             Turn business data into decision making — instantly.
             </div>
         </div>
         </div>
@@ -110,7 +270,7 @@ function handleDemoSubmit() {
               Start free
             </Link>
             <button
-            onClick={() => setIsDemoOpen(true)}
+            onClick={() => {setIsDemoOpen(true);setDemoSubmitted(false);setDemoError(null);}}
             className="px-3 sm:px-4 py-1.5 rounded-lg bg-gradient-to-r from-cyan-400 to-emerald-400 text-slate-950 text-xs sm:text-sm font-semibold shadow-lg shadow-cyan-500/30 hover:from-cyan-300 hover:to-emerald-300"
             >
             Request demo
@@ -132,33 +292,45 @@ function handleDemoSubmit() {
 
               <div className="space-y-3">
                 <h1 className="text-3xl sm:text-4xl lg:text-5xl font-semibold tracking-tight leading-tight">
-                  Turn your business data into{" "}
-                  <span className="text-cyan-300">value</span> — instantly.
+                  Executive-grade analytics from your{" "}
+                  <span className="text-cyan-300">business data</span> — in minutes.
                 </h1>
+
                 <p className="text-sm sm:text-base text-slate-300 max-w-xl">
-                  Valora AI connects to your sales, marketing, and finance
-                  tools to auto-generate dashboards, reports, and growth
-                  recommendations — so you can make better decisions without a
-                  data team.
+                  AI analytics across Ecommerce, SaaS, Finance & Ops
                 </p>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+              <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center ">
                 
-                <div className="flex-1 flex items-center gap-2 bg-slate-900/80 border border-slate-700 rounded-xl px-3 py-2.5">
-                  <input type="email"
-                    placeholder="Enter your work email" value={email} onChange={(e) => setEmail(e.target.value)}
-                    className="h-9 w-full text-xs sm:text-sm bg-transparent border-none focus:outline-none focus:ring-0 placeholder:text-slate-500"
-                    suppressHydrationWarning
-                  />
+              <form
+                className="flex-1 flex items-center gap-2 bg-slate-900/80 border border-slate-700 rounded-xl px-3 py-2.5 hover:border-cyan-400/60 hover:shadow-[0_0_0_1px_rgba(34,211,238,0.35)] transition"
+                onSubmit={(e) => { e.preventDefault(); handleEarlyAccessSubmit();}} >
+                  <input
+                      type="email"
+                      placeholder="Enter your work email"
+                      value={email}
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        if (submitted) setSubmitted(false); // unlock after success
+                        if (error) setError(null);          // clear error while typing
+                      }}
+                      className="h-9 w-full text-xs sm:text-sm bg-transparent border-none focus:outline-none focus:ring-0 placeholder:text-slate-500"
+                      suppressHydrationWarning
+                    />
+
                   <button
-                    type="button"
-                    onClick={handleEarlyAccessSubmit}
-                    className="h-9 px-3 inline-flex items-center justify-center text-xs sm:text-sm rounded-lg bg-gradient-to-r from-cyan-400 to-emerald-400 text-slate-950 font-semibold hover:from-cyan-300 hover:to-emerald-300 whitespace-nowrap"
+                      type="submit"
+                      
+                      disabled={submitted}
+                      className="h-9 px-3 inline-flex items-center justify-center text-xs sm:text-sm rounded-lg
+                                bg-gradient-to-r from-cyan-400 to-emerald-400 text-slate-950 font-semibold
+                                hover:from-cyan-300 hover:to-emerald-300 whitespace-nowrap
+                                disabled:opacity-60 disabled:pointer-events-none"
                     >
-                    Get early access →
-                    </button>
-                </div>
+                      {submitted ? "Added ✓" : "Get early access →"}
+                   </button>
+              </form>
                 
               </div>
                 {submitted && (
@@ -193,45 +365,57 @@ function handleDemoSubmit() {
               <div className="relative rounded-2xl border border-slate-800 bg-slate-950/90 shadow-2xl shadow-cyan-500/20 overflow-hidden">
                 <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between text-[11px] text-slate-400 bg-slate-950/80">
                   <span className="inline-flex items-center gap-1">
-                    <span className="h-2 w-2 rounded-full bg-emerald-400" />
-                    Executive overview • Demo client
-                  </span>
-                  <span>Last updated: 2 min ago</span>
+                    <span className="relative flex h-2 w-2">
+                      <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 animate-ping" />
+                      <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
+                    </span>
+                        Executive overview
+                    </span>
+                  <span className="text-slate-500">Last updated: 2m ago</span>
                 </div>
                 <div className="p-4 sm:p-5 space-y-3">
                   <div className="grid grid-cols-2 gap-3 text-xs">
                     <MetricTile
                       label="Monthly revenue"
-                      value="$182,430"
-                      delta="+14.2%"
+                      value={kpisLoading ? "—" : money(Number(kpis?.ecommerceKPIs?.revenue_30d ?? 0))}
+                      delta="(30d)"
                       positive
                     />
+
                     <MetricTile
                       label="Gross margin"
-                      value="39.4%"
-                      delta="+2.1 pts"
+                      value={
+                        kpisLoading ? "—" : `${Number(kpis?.ecommerceKPIs?.gross_margin_pct_30d ?? 0).toFixed(2)}%`
+                      }
+                      delta="(30d)"
                       positive
                     />
+
                     <MetricTile
-                      label="Repeat customers"
-                      value="46%"
-                      delta="+5.3 pts"
+                      label="Customers"
+                      value={kpisLoading ? "—" : `${Number(kpis?.ecommerceKPIs?.customers_30d ?? 0)}`}
+                      delta="(30d)"
                       positive
                     />
+
                     <MetricTile
-                      label="At-risk revenue"
-                      value="$12,900"
-                      delta="-8.1%"
-                      positive={false}
+                      label="Orders"
+                      value={kpisLoading ? "—" : `${Number(kpis?.ecommerceKPIs?.orders_30d ?? 0)}`}
+                      delta="(30d)"
+                      positive
                     />
                   </div>
 
                   <div className="mt-3 rounded-xl border border-slate-800 bg-slate-950/90 p-3 flex flex-col gap-3">
                     <div className="flex items-center justify-between text-[11px] text-slate-400">
-                      <span>Revenue & margin (last 6 months)</span>
-                      <span className="inline-flex items-center gap-2">
+                      <span className="inline-flex items-center gap-1">
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                        Revenue & margin (last 30 days)
+                      </span>
+
+                      <span className="inline-flex items-center gap-3">
                         <span className="inline-flex items-center gap-1">
-                          <span className="h-1.5 w-4 rounded-full bg-slate-100" />
+                          <span className="h-1.5 w-4 rounded-full bg-slate-200" />
                           Revenue
                         </span>
                         <span className="inline-flex items-center gap-1">
@@ -240,8 +424,11 @@ function handleDemoSubmit() {
                         </span>
                       </span>
                     </div>
-                    <div className="h-32 rounded-lg border border-dashed border-slate-800 flex items-center justify-center text-[11px] text-slate-500">
-                      Chart placeholder — plug in your real data.
+                    <div className="rounded-lg border border-slate-800 bg-slate-950/80 overflow-hidden">
+                      <MiniDualLineChart a={demoRevenue} b={demoMargin} />
+                    </div>
+                    <div className="text-[10px] text-slate-500">
+                      Live preview . Plug in real data after onboarding.
                     </div>
                   </div>
 
@@ -257,6 +444,58 @@ function handleDemoSubmit() {
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Works with strip */}
+        {/* ================= Why Valora ================= */}
+        <section className="border-b border-slate-900/80 bg-slate-950">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+            <div className=" rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-950 via-slate-950 to-slate-900/60 p-5 sm:p-6 flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between">
+
+              {/* Left: positioning */}
+              <div className="space-y-2 max-w-2xl">
+                <h2 className="text-sm sm:text-base font-semibold text-slate-100">
+                  Why Valora AI?
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                  Most tools show <span className="text-slate-100">what happened</span>. Valora AI explains{" "}
+                  <span className="text-cyan-300">why it happened</span> — by connecting finance, operations,
+                  customers, and growth signals into one executive narrative.
+                </p>
+              </div>
+
+              {/* Right: outcomes (3 cards) */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-[11px] w-full lg:w-auto ">
+                <div className="rounded-xl border border-slate-800 bg-slate-950/80 p-3 hover:border-cyan-400/60 hover:shadow-[0_0_0_1px_rgba(34,211,238,0.35)] transition">
+                  <div className="text-sm font-semibold text-slate-100">
+                    Dashboards in minutes
+                  </div>
+                  <p className="mt-1 text-[11px] text-slate-400">
+                    Domain KPIs and diagnostics auto-generated from your exports.
+                  </p>
+                </div>
+
+                <div className="rounded-xl border border-slate-800 bg-slate-950/80 p-3 hover:border-cyan-400/60 hover:shadow-[0_0_0_1px_rgba(34,211,238,0.35)] transition">
+                  <div className="text-sm font-semibold text-slate-100">
+                    Revenue leaks detected early
+                  </div>
+                  <p className="mt-1 text-[11px] text-slate-400">
+                    Flags churn risk, denial pressure, delays, and concentration risk.
+                  </p>
+                </div>
+
+                <div className="rounded-xl border border-slate-800 bg-slate-950/80 p-3 hover:border-cyan-400/60 hover:shadow-[0_0_0_1px_rgba(34,211,238,0.35)] transition">
+                  <div className="text-sm font-semibold text-slate-100">
+                    Cause → impact insights
+                  </div>
+                  <p className="mt-1 text-[11px] text-slate-400">
+                    Cross-domain engine links signals (e.g. delays → churn, denials → cash stress).
+                  </p>
+                </div>
+              </div>
+
             </div>
           </div>
         </section>
@@ -279,9 +518,8 @@ function handleDemoSubmit() {
             </p>
 
             <p className="text-xs sm:text-sm text-slate-400">
-            Valora AI learns each industry’s structure and metrics, using domain-aware
-            models to auto-generate dashboards, KPIs, forecasts, and insight narratives —
-            without custom pipelines or a full data team.
+              Valora AI turns raw business data into executive-ready dashboards and insights —
+              instantly, across every domain you operate in.
             </p>
 
             </div>
@@ -289,105 +527,117 @@ function handleDemoSubmit() {
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 text-xs">
 
             {/* E-commerce (active) */}
-            <div className="rounded-xl border border-slate-800 bg-slate-950/90 p-3 flex flex-col gap-2 hover:border-cyan-400/60 hover:shadow-[0_0_0_1px_rgba(34,211,238,0.35)] transition">
+            <div className="rounded-xl border border-slate-800 bg-slate-950/90 p-3 flex flex-col gap-1 hover:border-cyan-400/60 hover:shadow-[0_0_0_1px_rgba(34,211,238,0.35)] transition">
                 <div className="text-[11px] font-semibold text-cyan-300">
                 E-COMMERCE & DTC 🛒
                 </div>
                 <div className="text-[13px] font-semibold text-slate-100">
-                Products, customers, repeat orders
+                  Revenue, cohorts, and SKU performance
                 </div>
                 <p className="text-[11px] text-slate-400 leading-snug">
-                Upload your orders export and get instant visibility into revenue,
-                cohorts, and product performance — without spreadsheets.
+                  Upload orders → get instant visibility into growth, repeat behavior, and product winners.
                 </p>
                 <div className="mt-1 text-[11px] text-slate-500">
-                Metrics: AOV, repeat rate, top SKUs, at-risk revenue.
+                  Metrics: revenue, AOV, repeat rate, top SKUs, at-risk revenue.
                 </div>
             </div>
 
             {/* Insurance */}
-            <div className="rounded-xl border border-slate-800 bg-slate-950/90 p-3 flex flex-col gap-2 hover:border-cyan-400/60 hover:shadow-[0_0_0_1px_rgba(34,211,238,0.35)] transition">
-                <div className="text-[11px] font-semibold text-emerald-300">
-                INSURANCE 🛡️(COMING SOON)
-                </div>
-                <div className="text-[13px] font-semibold text-slate-100">
-                Policies, claims, loss ratios
-                </div>
-                <p className="text-[11px] text-slate-400 leading-snug">
-                Analytics pack for underwriting, claims, and actuarial insights —
-                powered by Valora’s core modeling engine.
-                </p>
-                <div className="mt-1 text-[11px] text-slate-500">
-                Metrics: written premium, earned premium, claim severity, loss ratio.
-                </div>
+            <div className="rounded-xl border border-slate-800 bg-slate-950/90 p-3 flex flex-col gap-1
+                hover:border-cyan-400/60 hover:shadow-[0_0_0_1px_rgba(34,211,238,0.35)] transition">
+
+              <div className="text-[11px] font-semibold text-emerald-300">
+                INSURANCE 🛡️
+              </div>
+              <div className="text-[13px] font-semibold text-slate-100">
+                Claims health and loss drivers
+              </div>
+              <p className="text-[11px] text-slate-400 leading-snug">
+                Track claim volume, severity, fraud signals, and concentration risk from raw claims exports.
+              </p>
+              <div className="mt-1 text-[11px] text-slate-500">
+                Metrics: loss ratio, open rate, fraud rate, high-severity share, top-10 policy share.
+              </div>
+              
             </div>
 
             {/* Supply chain */}
-            <div className="rounded-xl border border-slate-800 bg-slate-950/90 p-3 flex flex-col gap-2 hover:border-cyan-400/60 hover:shadow-[0_0_0_1px_rgba(34,211,238,0.35)] transition">
+            <div
+                className="rounded-xl border border-slate-800 bg-slate-950/90 p-3 flex flex-col gap-1 hover:border-cyan-400/60 hover:shadow-[0_0_0_1px_rgba(34,211,238,0.35)] transition">
+            
                 <div className="text-[11px] font-semibold text-sky-300">
-                SUPPLY CHAIN 📦(COMING SOON)
+                  SUPPLY CHAIN 📦
                 </div>
                 <div className="text-[13px] font-semibold text-slate-100">
-                Shipments, inventory, on-time %
+                  Delivery reliability at a glance
                 </div>
                 <p className="text-[11px] text-slate-400 leading-snug">
-                Transform shipment logs and SKU data into a live operations
-                dashboard — without needing a BI team.
+                  Turn shipment logs into on-time, delay, and network coverage insights in minutes.
                 </p>
                 <div className="mt-1 text-[11px] text-slate-500">
-                Metrics: OTIF, stockouts, warehouse turns.
+                  Metrics: on-time %, delay rate, avg delay, shipments, unique SKUs, unique locations.
                 </div>
+                
             </div>
 
             {/* Healthcare */}
-            <div className="rounded-xl border border-slate-800 bg-slate-950/90 p-3 flex flex-col gap-2 hover:border-cyan-400/60 hover:shadow-[0_0_0_1px_rgba(34,211,238,0.35)] transition">
+            <div
+                className="rounded-xl border border-slate-800 bg-slate-950/90 p-3 flex flex-col gap-1
+                          hover:border-cyan-400/60 hover:shadow-[0_0_0_1px_rgba(34,211,238,0.35)] transition"
+              >
                 <div className="text-[11px] font-semibold text-rose-300">
-                HEALTHCARE 🏥(COMING SOON)
+                  HEALTHCARE 🏥
                 </div>
+
                 <div className="text-[13px] font-semibold text-slate-100">
-                Claims, utilization, outcomes
+                  Denials, cost intensity, provider concentration
                 </div>
                 <p className="text-[11px] text-slate-400 leading-snug">
-                A healthcare analytics pack for providers and payers — powered by
-                automated cleaning, mapping, and cost modeling.
+                  Understand revenue leakage and high-cost drivers from claims data—fast.
                 </p>
                 <div className="mt-1 text-[11px] text-slate-500">
-                Metrics: claim cost, utilization rate, patient churn.
+                  Metrics: denial rate, avg paid/claim, high-cost share, top-10 provider share, claims/patient.
                 </div>
-            </div>
+              </div>
 
             {/* Finance */}
-            <div className="rounded-xl border border-slate-800 bg-slate-950/90 p-3 flex flex-col gap-2 hover:border-cyan-400/60 hover:shadow-[0_0_0_1px_rgba(34,211,238,0.35)] transition">
-                <div className="text-[11px] font-semibold text-purple-300">
-                FINANCE & BANKING 💳(COMING SOON)
-                </div>
-                <div className="text-[13px] font-semibold text-slate-100">
-                Cashflow, risk, portfolio insights
-                </div>
-                <p className="text-[11px] text-slate-400 leading-snug">
-                A domain pack for financial analytics focused on cashflow modeling,
-                portfolio performance, and policy risk insights.
-                </p>
-                <div className="mt-1 text-[11px] text-slate-500">
-                Metrics: NPV, IRR, liquidity, customer segments, risk scoring.
-                </div>
+            <div
+              className="rounded-xl border border-slate-800 bg-slate-950/90 p-3 flex flex-col gap-1
+                        hover:border-cyan-400/60 hover:shadow-[0_0_0_1px_rgba(34,211,238,0.35)] transition"
+            >
+              <div className="text-[11px] font-semibold text-purple-300">
+                FINANCE & BANKING 💳
+              </div>
+              
+              <div className="text-[13px] font-semibold text-slate-100">
+                Liquidity and risk signals in one view
+              </div>
+              <p className="text-[11px] text-slate-400 leading-snug">
+                Convert transactions + financials into clear signals on cash, exposure, and concentration.
+              </p>
+              <div className="mt-1 text-[11px] text-slate-500">
+                Metrics: net cash flow, liquidity ratios, exposure metrics, concentration indicators.
+              </div>
+              
             </div>
 
             {/* SaaS & Subscriptions */}
-            <div className="rounded-xl border border-slate-800 bg-slate-950/90 p-3 flex flex-col gap-2 hover:border-cyan-400/60 hover:shadow-[0_0_0_1px_rgba(34,211,238,0.35)] transition">
-            <div className="text-[11px] font-semibold text-indigo-300">
-                SAAS & SUBSCRIPTIONS ☁️(COMING SOON)
-            </div>
-            <div className="text-[13px] font-semibold text-slate-100">
-                MRR, churn, retention & expansions
-            </div>
-            <p className="text-[11px] text-slate-400 leading-snug">
-                A domain pack for subscription-based businesses with automated MRR tracking,
-                retention cohorts, churn detection, and revenue forecasting.
-            </p>
-            <div className="mt-1 text-[11px] text-slate-500">
-                Metrics: MRR, ARR, churn, LTV, ARPU, cohort heatmaps.
-            </div>
+            <div
+              className="rounded-xl border border-slate-800 bg-slate-950/90 p-3 flex flex-col gap-1
+                        hover:border-cyan-400/60 hover:shadow-[0_0_0_1px_rgba(34,211,238,0.35)] transition">
+              <div className="text-[11px] font-semibold text-indigo-300">
+                SAAS & SUBSCRIPTIONS ☁️
+              </div>
+
+              <div className="text-[13px] font-semibold text-slate-100">
+                MRR, churn, and retention clarity
+              </div>
+              <p className="text-[11px] text-slate-400 leading-snug">
+                Turn subscription events into growth, churn risk, and expansion signals automatically.
+              </p>
+              <div className="mt-1 text-[11px] text-slate-500">
+                Metrics: MRR, churn, ARPU, expansion/contraction, revenue churn, NRR.
+              </div>
             </div>
 
             </div>
@@ -396,75 +646,75 @@ function handleDemoSubmit() {
 
         {/* Features */}
         <section id="features" className="border-b border-slate-900/80 bg-slate-950">
-
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 space-y-8">
-            <div className="rounded-xl border border-slate-800 bg-slate-950/90 p-3 flex flex-col gap-2 hover:border-cyan-400/60 hover:shadow-[0_0_0_1px_rgba(34,211,238,0.35)] transition">
-              <FeatureCard 
-                title="Automated dashboards"
-                body="Stay on top of revenue, margin, repeat customers, and marketing ROI — without building a single report manually."
-              /></div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FeatureCard
-                title="AI-generated insights"
-                body="Let Valora AI scan your data for anomalies, trends, and opportunities, and summarize them in plain language."
-              />
-              <FeatureCard
-                title="One-click reports"
-                body="Generate monthly, quarterly, or investor-ready PDFs with a single click — branded with your logo."
-              />
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 space-y-6">
+            <div className="space-y-2">
+              <div className="text-xs font-semibold tracking-[0.25em] uppercase text-cyan-300">
+                Features
+              </div>
+              <div className="text-sm text-slate-400 max-w-2xl">
+                Built for founders and operators: instant KPIs, clear diagnostics, and cross-domain signals — without a data team.
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FeatureCard
-                title="Ecommerce intelligence"
-                body="Track SKU performance, margin by product, cart behavior, and repeat order trends to grow smarter."
+                title="Dashboards in minutes"
+                body="Upload CSVs (or connect sources later). Valora auto-builds domain KPIs + diagnostics instantly."
               />
               <FeatureCard
-                title="Secure & private"
-                body="Your data is encrypted at rest and in transit. You stay in control of who sees what, across your team."
+                title="Explained insights"
+                body="Not just charts — plain-English narratives that highlight what changed, why it matters, and what to check next."
+              />
+              <FeatureCard
+                title="Cross-domain signals"
+                body="Connect Finance + Ops + Customer health to catch second-order risk (e.g., delays → churn, denials → cash stress)."
+              />
+              <FeatureCard
+                title="Secure by default"
+                body="Encrypted in transit and at rest. You control access. No training on your private data."
               />
             </div>
           </div>
         </section>
 
         {/* How it works */}
-        <section
-          id="how-it-works"
-          className="border-b border-slate-900/80 bg-slate-950/95"
-        >
+        <section id="how-it-works" className="border-b border-slate-900/80 bg-slate-950/95">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 space-y-8">
             <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
-              <div className="space-y-2">
-                <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight">
-                  From raw data to decisions in minutes.
-                </h2>
-                <p className="text-sm sm:text-base text-slate-300 max-w-xl">
-                  Valora AI is built so that founders and operators — not just
-                  data teams — can get to answers quickly.
-                </p>
+             <div className="space-y-2">
+                <div className="text-xs font-semibold tracking-[0.25em] uppercase text-cyan-300">
+                  How it works
+                </div>
+                <div className="text-sm text-slate-400 max-w-2xl">
+                  Upload exports or connect tools. Valora auto-models your data into domain KPIs,
+                  diagnostics, and executive-ready insights — in minutes.
+                </div>
               </div>
-              <div className="inline-flex items-center bg-slate-900/80 border border-slate-700 text-[11px] px-3 py-1 rounded-full text-slate-300">
-                No implementation team required
-              </div>
+              {/* <div className="inline-flex items-center bg-slate-900/80 border border-slate-700 text-[11px] px-3 py-1 rounded-full text-slate-300">
+                Start with CSVs today
+              </div> */}
             </div>
+            <HowItWorksFlow />
+            {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch">
+              <StepCard
+                icon="→"
+                title="Add your data"
+                body="Upload reports or connect Shopify, Stripe, or CSV exports."
+              />
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <StepCard
-                step="1"
-                title="Connect your tools"
-                body="Link Shopify, Stripe, payment processors, ads platforms, or CSV exports. Start with whatever you have today."
+                icon="⇢"
+                title="Valora models it"
+                body="Automatic cleaning, mapping, and KPI computation across domains."
               />
+
               <StepCard
-                step="2"
-                title="Let AI map your data"
-                body="Valora cleans, joins, and models your data behind the scenes to create a unified view of your business."
+                icon="✓"
+                title="Act on insights"
+                body="Diagnostics + cross-domain signals show what to fix or double down on."
               />
-              <StepCard
-                step="3"
-                title="Get insights & reports"
-                body="Use pre-built dashboards and AI-generated narratives to make confident decisions every week."
-              />
-            </div>
+            </div> */}
+
           </div>
         </section>
 
@@ -474,14 +724,14 @@ function handleDemoSubmit() {
           className="border-b border-slate-900/80 bg-slate-950"
         >
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 space-y-8">
-            <div className="space-y-3 max-w-2xl">
-              <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight">
-                Simple pricing for growing businesses.
-              </h2>
-              <p className="text-sm sm:text-base text-slate-300">
-                Start free, then upgrade only when Valora AI becomes a relied-on
-                part of your weekly decision-making.
-              </p>
+            <div className="space-y-2 max-w-2xl">
+              <div className="text-xs font-semibold tracking-[0.25em] uppercase text-cyan-300">
+                Pricing
+              </div>
+              <div className="text-sm text-slate-400">
+                Start free, then upgrade only when Valora AI becomes a core part of your
+                weekly decision-making.
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -538,34 +788,33 @@ function handleDemoSubmit() {
         {/* FAQ + footer */}
         <section id="faq" className="bg-slate-950/95">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 space-y-10">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+            <div className="space-y-6 max-w-3xl">
+              {/* FAQ header */}
               <div className="space-y-3">
-                <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight">
-                  Frequently asked questions.
-                </h2>
-                <p className="text-sm sm:text-base text-slate-300 max-w-lg">
-                  If you&apos;re wondering whether Valora AI is the right fit,
-                  here are answers to common questions from founders and
-                  operators like you.
-                </p>
+                <div className="text-xs font-semibold tracking-[0.25em] uppercase text-cyan-300">
+                  FAQ
+                </div>
+                <div className="text-sm text-slate-400 max-w-xl">
+                  Answers to common questions from founders and operators evaluating Valora AI.
+                </div>
               </div>
 
+              {/* FAQ items */}
               <div className="space-y-3 text-sm text-slate-200">
                 <FaqItem
                   question="Do I need a data team or engineer to get value from Valora AI?"
-                  answer="No. Valora AI is designed for non-technical founders and operators. If you can connect tools like Shopify or Stripe, you can use Valora."
+                  answer="No. Valora AI is built for founders and operators. If you can upload exports or connect tools like Shopify or Stripe, you can get value immediately."
                 />
+
                 <FaqItem
                   question="Which tools can I connect?"
-                  answer="In the early versions, you'll be able to connect Shopify, Stripe, CSV exports, and selected ad platforms. More integrations will be added based on demand."
+                  answer="You can start with CSV exports and connect Shopify, Stripe, and selected ad platforms. More integrations will be added based on demand."
                 />
-                <FaqItem
-                  question="Can I use Valora AI just for reporting?"
-                  answer="Yes. Many teams start by using Valora as their reporting layer and then begin using the AI insights once they trust the numbers."
-                />
+
                 <FaqItem
                   question="Is my data secure?"
-                  answer="Yes. Your data is encrypted in transit and at rest. You remain the owner of your data, and you can disconnect integrations at any time."
+                  answer="Yes. Your data is encrypted in transit and at rest. You remain the owner of your data and can disconnect integrations at any time."
                 />
               </div>
             </div>
@@ -592,74 +841,84 @@ function handleDemoSubmit() {
           </div>
         </section>
 
-            {isDemoOpen && (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-        <div className="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-950 p-5 shadow-2xl">
-        <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold text-slate-100">
-            Request a Valora AI demo
-            </h3>
-            <button
-            onClick={() => setIsDemoOpen(false)}
-            className="text-slate-400 hover:text-slate-200"
+        {isDemoOpen && (
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+              onMouseDown={(e) => {
+                if (e.currentTarget === e.target) setIsDemoOpen(false); // click outside closes
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") setIsDemoOpen(false);
+              }}
+              tabIndex={-1}
             >
-            ✕
-            </button>
-        </div>
+              <div className="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-950 p-5 shadow-2xl">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold text-slate-100">Request a Valora AI demo</h3>
+                  <button
+                    type="button"
+                    onClick={() => setIsDemoOpen(false)}
+                    className="text-slate-400 hover:text-slate-200"
+                    aria-label="Close demo modal"
+                  >
+                    ✕
+                  </button>
+                </div>
 
-        <p className="text-xs text-slate-400 mb-4">
-            Tell us a bit about your business. We’ll reach out with a tailored demo.
-        </p>
+                <p className="text-xs text-slate-400 mb-4">
+                  Tell us a bit about your business. We’ll reach out with a tailored demo.
+                </p>
 
-        <div className="space-y-3">
-            <input
-            placeholder="Work email"
-            value={demoEmail}
-            onChange={(e) => setDemoEmail(e.target.value)}
-            className="w-full h-9 rounded-lg bg-slate-900 border border-slate-700 px-3 text-xs text-slate-200 placeholder:text-slate-500"
-            />
+                <div className="space-y-3">
+                  <input
+                    placeholder="Work email"
+                    value={demoEmail}
+                    onChange={(e) => setDemoEmail(e.target.value)}
+                    className="w-full h-9 rounded-lg bg-slate-900 border border-slate-700 px-3 text-xs text-slate-200 placeholder:text-slate-500"
+                  />
 
-            <input
-            placeholder="Company name"
-            value={demoCompany}
-            onChange={(e) => setDemoCompany(e.target.value)}
-            className="w-full h-9 rounded-lg bg-slate-900 border border-slate-700 px-3 text-xs text-slate-200 placeholder:text-slate-500"
-            />
+                  <input
+                    placeholder="Company name"
+                    value={demoCompany}
+                    onChange={(e) => setDemoCompany(e.target.value)}
+                    className="w-full h-9 rounded-lg bg-slate-900 border border-slate-700 px-3 text-xs text-slate-200 placeholder:text-slate-500"
+                  />
 
-            <select
-            value={demoDomain}
-            onChange={(e) => setDemoDomain(e.target.value)}
-            className="w-full h-9 rounded-lg bg-slate-900 border border-slate-700 px-2 text-xs text-slate-200">
-            <option>E-commerce</option>
-            <option>SaaS</option>
-            <option>Insurance</option>
-            <option>Healthcare</option>
-            <option>Supply Chain</option>
-            <option>Finance / Banking</option>
-            </select>
-        </div>
+                  <select
+                    value={demoDomain}
+                    onChange={(e) => setDemoDomain(e.target.value)}
+                    className="w-full h-9 rounded-lg bg-slate-900 border border-slate-700 px-2 text-xs text-slate-200"
+                  >
+                    <option>E-commerce</option>
+                    <option>SaaS</option>
+                    <option>Insurance</option>
+                    <option>Healthcare</option>
+                    <option>Supply Chain</option>
+                    <option>Finance / Banking</option>
+                  </select>
+                </div>
 
-        <button
-        onClick={handleDemoSubmit}
-        className="mt-4 w-full h-9 rounded-lg bg-gradient-to-r from-cyan-400 to-emerald-400 text-slate-950 text-xs font-semibold hover:from-cyan-300 hover:to-emerald-300">
-        Submit request
-        </button>
-        {demoSubmitted && (
-        <div className="mt-3 text-[11px] text-emerald-300">
-            Request received — we’ll email you shortly.
-        </div>
-        )}
-        {demoError && (
-        <div className="mt-3 text-[11px] text-rose-300">
-            {demoError}
-        </div>
-        )}
-        <div className="mt-3 text-[11px] text-slate-500 text-center">
-            We typically respond within 24 hours.
-        </div>
-        </div>
-    </div>
-    )}
+                <button
+                  type="button"
+                  onClick={handleDemoSubmit}
+                  className="mt-4 w-full h-9 rounded-lg bg-gradient-to-r from-cyan-400 to-emerald-400 text-slate-950 text-xs font-semibold hover:from-cyan-300 hover:to-emerald-300"
+                >
+                  Submit request
+                </button>
+
+                {demoSubmitted && (
+                  <div className="mt-3 text-[11px] text-emerald-300">
+                    Request received — we’ll email you soon.
+                  </div>
+                )}
+                {demoError && <div className="mt-3 text-[11px] text-rose-300">{demoError}</div>}
+
+                <div className="mt-3 text-[11px] text-slate-500 text-center">
+                  No spam. One follow-up email.
+                </div>
+              </div>
+            </div>
+          )}    
 
 
       </main>
@@ -669,6 +928,62 @@ function handleDemoSubmit() {
 
 
 
+// ======================
+// KPI TYPES (API CONTRACT)
+// ======================
+
+interface EcommerceKPIs {
+  revenue_30d: number;
+  cogs_30d: number;
+  gross_margin_pct_30d: number;
+  customers_30d: number;
+  orders_30d: number;
+}
+
+interface FinanceKPIs {
+  inflow_30d: number;
+  outflow_30d: number;
+  net_cash_flow_30d: number;
+}
+
+interface SaasKPIs {
+  mrr_delta_30d: number;
+  churn_events_30d: number;
+  churn_rate_pct_30d: number;
+  active_customers_30d: number;
+}
+
+interface SupplyKPIs {
+  on_time_rate_pct_30d: number;
+  avg_delay_days_30d: number;
+  shipments_30d: number;
+}
+
+interface HealthcareKPIs {
+  claims_30d: number;
+  denied_30d: number;
+  denial_rate_pct_30d: number;
+  avg_paid_per_claim_30d: number;
+}
+
+interface InsuranceKPIs {
+  written_premium_30d: number;
+  incurred_loss_30d: number;
+  loss_ratio_pct_30d: number;
+  claims_30d: number;
+  suspected_fraud_30d: number;
+  suspected_fraud_rate_pct_30d: number;
+}
+
+export interface KpiBundle {
+  ecommerceKPIs: EcommerceKPIs;
+  financeKPIs: FinanceKPIs;
+  saasKPIs: SaasKPIs;
+  supplyKPIs: SupplyKPIs;
+  healthcareKPIs: HealthcareKPIs;
+  insuranceKPIs: InsuranceKPIs;
+}
+
 
 interface MetricTileProps {
   label: string;
@@ -676,6 +991,10 @@ interface MetricTileProps {
   delta: string;
   positive?: boolean;
 }
+
+// ======================
+// KPI TYPES (API CONTRACT)
+// ======================
 
 const MetricTile: React.FC<MetricTileProps> = ({
   label,
@@ -711,16 +1030,14 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ title, body }) => (
 );
 
 interface StepCardProps {
-  step: string;
+  icon: string;
   title: string;
   body: string;
 }
 
-const StepCard: React.FC<StepCardProps> = ({ step, title, body }) => (
+const StepCard: React.FC<StepCardProps> = ({ icon, title, body }) => (
   <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex flex-col h-full">
-    <div className="h-7 w-7 rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center text-[11px] text-slate-300 mb-2">
-      {step}
-    </div>
+    <div className="text-lg text-cyan-300 mb-2">{icon}</div>
     <h3 className="text-sm font-medium text-slate-100 mb-1">{title}</h3>
     <p className="text-xs text-slate-300 flex-1">{body}</p>
   </div>

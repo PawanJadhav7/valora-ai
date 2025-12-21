@@ -5,12 +5,7 @@ import Papa from "papaparse";
 import { useRouter, useSearchParams } from "next/navigation";
 import { computeDomainPack } from "@/app/lib/domainPacks";
 import { validateRowsForDomain } from "@/app/lib/kpis/validation";
-// import { pickNumber, pickString, parseBool } from "@/app/lib/utils/rowExtractors";
-
-
-
-//import { validateInsuranceRows } from "@/app/lib/kpis/validation";
-// Comment: Import Insurance validation from centralized validation.ts.
+import { computeCrossDomainInsights } from "@/app/lib/insights/crossDomainEngine";
 
 
 import { 
@@ -376,23 +371,23 @@ export default function DashboardPage() {
 
   
 
-  const rawData = activeClient ? datasets[activeClient]?.rows ?? [] : [];
+const rawData = activeClient ? datasets[activeClient]?.rows ?? [] : [];
 
-  const activeDatasetMissingCount = useMemo(() => {
-    if (!activeClient) return 0;
-    const ds = datasets[activeClient];
-    return ds?.issues?.missing?.length ? ds.issues.missing.length : 0;
-  }, [datasets, activeClient]);
+const activeDatasetMissingCount = useMemo(() => {
+  if (!activeClient) return 0;
+  const ds = datasets[activeClient];
+  return ds?.issues?.missing?.length ? ds.issues.missing.length : 0;
+}, [datasets, activeClient]);
 
 const canGenerateReport = activeClient && activeDatasetMissingCount === 0;
 
-  const activeDatasetIssues = useMemo(() => {
-      if (!activeClient) return null;
-      const ds = datasets[activeClient];
-      if (!ds?.issues) return null;
-      if (!ds.issues.missing?.length) return null;
-      return ds.issues;
-    }, [datasets, activeClient]);
+const activeDatasetIssues = useMemo(() => {
+    if (!activeClient) return null;
+    const ds = datasets[activeClient];
+    if (!ds?.issues) return null;
+    if (!ds.issues.missing?.length) return null;
+    return ds.issues;
+  }, [datasets, activeClient]);
 
   function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -2299,6 +2294,57 @@ const ecommerceReadyDatasetsCount = useMemo(() => {
 const ecommerceAllDatasetsCount = useMemo(() => Object.keys(datasets || {}).length, [datasets]);
 
 const ecommerceReady = ecommerceReadyDatasetsCount > 0;
+
+
+//----------------------------CrossDomainInsights-----------------------//
+
+const crossCtx = useMemo(() => {
+  return {
+    finance: financeKPIs ?? null,
+    saas: saasKPIs ?? null,
+    supply: supplyKPIs ?? null,
+    healthcare: healthcareKPIs ?? null,
+    insurance: insuranceKPIs ?? null,
+    ecommerce: ecommerceKPIs ?? null, // or ecomKPIs, whichever you use
+  };
+}, [financeKPIs, saasKPIs, supplyKPIs, healthcareKPIs, insuranceKPIs, ecommerceKPIs]);
+
+const cross = useMemo(() => computeCrossDomainInsights(crossCtx, { limit: 3 }), [crossCtx]);
+
+const crossDomain = useMemo(() => {
+  return computeCrossDomainInsights(
+    {
+      finance: financeKPIs ?? undefined,
+      saas: saasKPIs ?? undefined,
+      supply: supplyKPIs ?? undefined,          
+      healthcare: healthcareKPIs ?? undefined,
+      insurance: insuranceKPIs ?? undefined,
+      ecommerce: ecommerceKPIs ?? undefined,
+    },
+    { limit: 3 }
+  );
+}, [financeKPIs, saasKPIs, supplyKPIs, healthcareKPIs, insuranceKPIs, ecommerceKPIs]);
+
+function insightClsToBadgeClass(cls: "emerald" | "amber" | "rose" | "slate") {
+  switch (cls) {
+    case "emerald":
+      return "border-emerald-400/40 text-emerald-200 bg-emerald-500/10";
+    case "amber":
+      return "border-amber-400/40 text-amber-200 bg-amber-500/10";
+    case "rose":
+      return "border-rose-400/40 text-rose-200 bg-rose-500/10";
+    default:
+      return "border-slate-700 text-slate-300 bg-slate-900/50";
+  }
+}
+
+function priorityToDotClass(p: "low" | "medium" | "high") {
+  if (p === "high") return "bg-rose-400";
+  if (p === "medium") return "bg-amber-400";
+  return "bg-slate-400";
+}
+
+//----------------------------CrossDomainInsights-----------------------//
   
 
 // --- Finance Pack (D-3.1) : derived diagnostics (no KPI duplication) ---
@@ -3825,6 +3871,101 @@ const ecommerceReady = ecommerceReadyDatasetsCount > 0;
 
             </div>
           )}
+            {/* ================= Cross-Domain Insights ================= */}
+            
+            <div className="rounded-xl border border-slate-800 bg-slate-950/90 p-4 text-xs space-y-3">
+            {/* Header */}
+            <div className="flex items-center justify-between gap-3">
+              <div className="space-y-0.5">
+                <div className="font-medium text-slate-100">Cross-domain insights</div>
+                <div className="text-[11px] text-slate-400">
+                  Signals detected across Finance, Ecommerce, SaaS, Supply Chain, Healthcare, and Insurance.
+                </div>
+              </div>
+
+              <span
+                className={cn(
+                  "text-[11px] px-2 py-0.5 rounded-full border",
+                  (crossDomain?.top?.length ?? 0) > 0
+                    ? "border-emerald-400/50 text-emerald-200 bg-emerald-500/10"
+                    : "border-slate-700 text-slate-300 bg-slate-900/50"
+                )}
+              >
+                {(crossDomain?.top?.length ?? 0) > 0 ? "Active" : "Quiet"}
+              </span>
+            </div>
+
+            {/* Content */}
+            {(crossDomain?.top?.length ?? 0) === 0 ? (
+              <div className="rounded-lg border border-slate-800 bg-slate-950/70 p-3">
+                <div className="text-[11px] text-slate-400">No cross-domain alerts right now</div>
+                <div className="mt-1 text-[11px] text-slate-500">
+                  Upload more datasets across domains to unlock cross-signal detection (e.g., Supply + SaaS, Finance + Healthcare).
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+                {crossDomain.top.map((ins) => (
+                  <div key={ins.id} className="rounded-lg border border-slate-800 bg-slate-950/70 p-3 space-y-2">
+                    {/* Title row */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="space-y-1">
+                        <div className="text-sm font-semibold text-slate-100 leading-snug">{ins.title}</div>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          {/* Priority dot */}
+                          <span className={cn("h-2 w-2 rounded-full", priorityToDotClass(ins.priority))} />
+
+                          {/* Severity badge */}
+                          <span className={cn("inline-flex items-center px-2 py-0.5 rounded-full border text-[11px]", insightClsToBadgeClass(ins.cls))}>
+                            {ins.severity}
+                          </span>
+
+                          {/* Domain pills */}
+                          {ins.domains?.slice(0, 3).map((d) => (
+                            <span
+                              key={d}
+                              className="inline-flex items-center px-2 py-0.5 rounded-full border text-[11px] border-slate-700 text-slate-300 bg-slate-900/50"
+                            >
+                              {d}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Message */}
+                    <div className="text-[11px] text-slate-300 leading-relaxed">{ins.message}</div>
+
+                    {/* Why it matters */}
+                    <div className="text-[10px] text-slate-500 leading-relaxed">
+                      <span className="text-slate-400">Why it matters: </span>
+                      {ins.explanation}
+                    </div>
+
+                    {/* Facts */}
+                    {(ins.facts?.length ?? 0) > 0 && (
+                      <div className="pt-1 flex flex-wrap gap-2">
+                        {ins.facts!.slice(0, 4).map((f) => (
+                          <div key={f.label} className="rounded-md border border-slate-800 bg-slate-950/60 px-2 py-1">
+                            <div className="text-[10px] text-slate-500">{f.label}</div>
+                            <div className="text-[11px] font-medium text-slate-200">{f.value}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Action */}
+                    {ins.recommended_action && (
+                      <div className="pt-1 text-[11px] text-slate-300">
+                        <span className="text-slate-400">Next step: </span>
+                        {ins.recommended_action}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
               
 
 

@@ -1,0 +1,11 @@
+dataset_id,txn_id,txn_date,account,category,direction,amount,currency,counterparty,memo
+11111111-1111-1111-1111-111111111111,TXN-2001,2025-12-01,Operating,Revenue,inflow,4200.00,USD,Stripe,Payout
+11111111-1111-1111-1111-111111111111,TXN-2002,2025-12-01,Operating,COGS,outflow,1800.00,USD,Supplier A,Inventory
+11111111-1111-1111-1111-111111111111,TXN-2003,2025-12-02,Operating,Marketing,outflow,950.00,USD,Meta Ads,Ads
+11111111-1111-1111-1111-111111111111,TXN-2004,2025-12-02,Operating,Shipping,outflow,420.00,USD,Carrier,Shipping
+11111111-1111-1111-1111-111111111111,TXN-2005,2025-12-03,Operating,Revenue,inflow,3800.00,USD,Stripe,Payout
+11111111-1111-1111-1111-111111111111,TXN-2006,2025-12-03,Operating,Rent,outflow,2200.00,USD,Landlord,Rent
+11111111-1111-1111-1111-111111111111,TXN-2007,2025-12-04,Operating,Payroll,outflow,3100.00,USD,Gusto,Payroll
+11111111-1111-1111-1111-111111111111,TXN-2008,2025-12-05,Operating,Revenue,inflow,2600.00,USD,Stripe,Payout
+11111111-1111-1111-1111-111111111111,TXN-2009,2025-12-06,Operating,Refunds,outflow,480.00,USD,Customers,Refunds
+11111111-1111-1111-1111-111111111111,TXN-2010,2025-12-07,Operating,Tools,outflow,180.00,USD,Software,Subscriptions
