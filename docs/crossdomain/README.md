@@ -67,7 +67,7 @@ type CrossDomainInputs = {
 
 Each cross-domain insight follows a strict schema:
 
-``ts
+```ts
 type CrossDomainInsight = {
   id: string;
   severity: "Low" | "Medium" | "High";

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { Pool } from "pg";
 
+
+
 export const runtime = "nodejs"; // required for pg in Next.js (not Edge)
 console.log("DATABASE_URL =", process.env.DATABASE_URL);
 
